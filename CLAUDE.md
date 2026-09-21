@@ -2,7 +2,7 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-## Project: Dirky Link
+## Project: Dinky Link
 
 A URL shortener. A URL that's too long to copy to a tweet this tool creates a short URL to a redirect to the long URL.
 
@@ -11,7 +11,7 @@ A URL shortener. A URL that's too long to copy to a tweet this tool creates a sh
 - **Backend**: Kotlin, Spring Boot 4, Gradle (kts), JVM 25. API Project in `backend/api`. Workers Project in `backend/workers`
 - **Database**: PostgreSQL with Flyway migrations
 - **Cache**: Redis
-- **Frontend**: React 18, Vite, TypeScript, TailwindCSS, shadcn/ui
+- **Frontend**: React 19, Vite, TypeScript, TailwindCSS, shadcn/ui
 - **E2E Tests**: Separate Gradle project in `backend/api-tests` using REST Assured
 
 ## Local Development
@@ -42,7 +42,7 @@ cd local
 docker compose --profile test up api-tests
 ```
 
-## Backend (`backend/bridgespeak-service`)
+## Backend (`backend/api`)
 
 Build and run unit tests:
 ```bash
@@ -52,7 +52,7 @@ Build and run unit tests:
 
 Run a single test class:
 ```bash
-./gradlew test --tests "com.bridgespeak.chat.service.UserServiceTest"
+./gradlew test --tests "dev.dukecvar.dinkylink.api.DinkyLinkApiApplicationTests"
 ```
 
 Run the service locally (requires Postgres and Redis running via docker compose):
