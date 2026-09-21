@@ -16,33 +16,40 @@ A URL shortener. A URL that's too long to copy to a tweet this tool creates a sh
 
 ## Local Development
 
-Start all infrastructure and the backend service:
+Start infrastructure — PostgreSQL, Redis, the nginx gateway, and Flyway
+migrations (the `flyway` container applies migrations then exits):
 ```bash
 cd local
 docker compose up -d
 ```
 
-This starts PostgreSQL, runs Flyway migrations, Redis.
+This does **not** start the backend or frontend — run those yourself,
+outside compose (see below). Until they're running, requests through the
+nginx gateway (`http://localhost:8080`) will 502.
 
-To bring up a completely fresh ephemeral environment (re-runs FusionAuth's Kickstart provisioning from scratch):
+To bring up a completely fresh ephemeral environment (wipes the Postgres
+volume; Flyway re-applies all migrations from scratch on next `up`):
 ```bash
 cd local
 docker compose down -v
 docker compose up -d
 ```
 
-Also bring up the containerized frontend (nginx serving the Vite build) on port 5173:
+Run the backend and frontend:
 ```bash
-docker compose up -d --build frontend
+cd backend/api && ./gradlew bootRun    # localhost:8081
+cd frontend && npm run dev             # localhost:5173
 ```
 
-Run E2E tests (requires the stack to be up):
-```bash
-cd local
-docker compose --profile test up api-tests
-```
+With all of the above running, the app is available at
+`http://localhost:8080` (nginx routes `GET /` to the frontend, `POST /`
+and `GET /<shortcode>` to the backend).
 
 ## Backend (`backend/api`)
+
+All commands below require Postgres and Redis running (`cd local &&
+docker compose up -d`) — the generated context-load test opens a real
+datasource connection, so even `./gradlew build`/`test` fail without it.
 
 Build and run unit tests:
 ```bash
@@ -55,10 +62,12 @@ Run a single test class:
 ./gradlew test --tests "dev.dukecvar.dinkylink.api.DinkyLinkApiApplicationTests"
 ```
 
-Run the service locally (requires Postgres and Redis running via docker compose):
+Run the service locally:
 ```bash
 ./gradlew bootRun
 ```
+Serves on `http://localhost:8081` directly (nginx's public gateway is on
+`8080` — see Local Development above).
 
 ## Frontend (`frontend/`)
 

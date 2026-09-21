@@ -9,9 +9,10 @@ cd local
 docker compose up -d
 ```
 
-Brings up Postgres, Redis, and runs Flyway migrations (the `flyway`
-container applies `../database/migrations` then exits — `docker compose ps`
-will show it as `Exited (0)`, which is expected).
+Brings up Postgres, Redis, and the nginx gateway, and runs Flyway
+migrations (the `flyway` container applies `../database/migrations` then
+exits — `docker compose ps` will show it as `Exited (0)`, which is
+expected).
 
 For a completely fresh environment (wipes the Postgres volume too):
 
@@ -26,11 +27,11 @@ docker compose up -d
 yourselves, outside compose:
 
 ```bash
-cd backend/api && ./gradlew bootRun    # localhost:8080
+cd backend/api && ./gradlew bootRun    # localhost:8081
 cd frontend && npm run dev             # localhost:5173
 ```
 
-The `nginx` gateway (added once `backend/api` and `frontend` exist) proxies
-`http://localhost:8080` to whichever of those is running on the host; if
-you've only run `docker compose up -d`, requests through nginx will 502
-until you start the backend/frontend dev servers.
+The `nginx` gateway proxies `http://localhost:8080` to whichever of those
+is running on the host (backend on `8081`, frontend on `5173`); if you've
+only run `docker compose up -d`, requests through nginx will 502 until you
+start the backend/frontend dev servers.
