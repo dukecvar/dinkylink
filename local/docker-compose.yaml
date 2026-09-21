@@ -1,0 +1,45 @@
+services:
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: dinkylink
+      POSTGRES_USER: dinkylink
+      POSTGRES_PASSWORD: dinkylink
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U dinkylink -d dinkylink"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  flyway:
+    image: flyway/flyway:11-alpine
+    command:
+      - -url=jdbc:postgresql://postgres:5432/dinkylink
+      - -user=dinkylink
+      - -password=dinkylink
+      - -connectRetries=10
+      - -locations=filesystem:/flyway/sql
+      - migrate
+    volumes:
+      - ../database/migrations:/flyway/sql
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: "no"
+
+volumes:
+  pgdata:
