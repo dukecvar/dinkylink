@@ -1,0 +1,108 @@
+@startuml
+autonumber
+
+title URL shortener
+
+actor Author as author
+actor Consumer as consumer
+participant "UI" as ui
+participant "API" as api
+box cache buckets
+participant "shortcodes\nk:hash(url)\nv:shortcode\n" as urlCache
+participant "urls\nk:shortcode\nv:URL record" as shortUrlCache
+participant "Last Touched\nk:shortcode\nv:timestamp" as touchedCache
+end box
+participant "Read\nDatabase" as dbreads
+participant "Write\nDatabase" as dbwrites
+participant "Worker" as worker
+
+== Create URL ==
+author -> ui: Generate short URL
+activate author
+activate ui
+ui -> api : Make short URL
+activate api
+api -> api : urlhash = hash(url)
+
+alt Cache hit
+    api -> urlCache : fetch shortcode\nby urlhash
+    api -> shortUrlCache: fetch record by shortcode
+    api -> touchedCache : touch record
+else Database Hit
+    api -> dbreads : : fetch record by urlhash
+    api -> urlCache: add to cache
+    api -> shortUrlCache: add to cache
+    api -> touchedCache : touch record
+
+else Create new
+    api -> dbwrites : upsert(URL, urlhash)
+    activate dbwrites
+    loop saltItr = 0
+        note right of dbwrites: createHashCode function:\
+            \n   hash input with hashtextextended(urlHash, saltItr)\
+            \n   convert to Base62 - [A-Za-z0-9]
+        dbwrites -> dbwrites: **generate shorthash and attempt insert** \
+            \n (shorthash has unique constraint)\
+            \ninsert into record(\
+            \n   shorthash=createHashCode($saltItr+$urlhash),\
+            \n   urlhash=$urlhash,\
+            \n   url=$url,\
+            \n   salt=$saltitr,\
+            \n   lastTouchedTS=now)
+        alt insert success
+            dbwrites -> dbwrites : **success**\nexit loop & return record
+        else insert error
+            dbwrites -> dbwrites : **collision**\nincrement saltItr & continue loop
+        else saltItr > maxSalt
+            dbwrites -> dbwrites : **fail**\nexit loop & return error
+        end
+    end
+    api <- dbwrites : return record
+    deactivate dbwrites
+    api -> urlCache: add to cache
+    api -> shortUrlCache: add to cache
+end
+ui <- api : short URL
+deactivate api
+author <- ui : short URL
+deactivate ui
+deactivate author
+
+== Consume Short URL ==
+consumer -> api : click\nshort URL
+activate consumer
+activate api
+alt Cache Hit
+    api -> shortUrlCache : fetch record\nby shortcode
+    api -> touchedCache : touch record
+else database hit
+    api -> dbreads : fetch record\nby shortcode
+    api -> touchedCache : touch record
+else error
+    api -> api: generate error
+end
+
+consumer <- api: redirect to URL
+deactivate api
+consumer -> consumer : visit website
+deactivate consumer
+
+== Out of band workers ==
+group batch update records for last touched timestamp
+worker -> touchedCache : get touched record ids
+activate worker
+worker -> dbwrites : update lastTouchedTS for record Ids
+deactivate worker
+end
+
+group cleanup - run once a day
+'worker <- worker: sleep 1 day
+worker -> dbwrites : delete old records (>1 year)
+activate worker
+deactivate worker
+end
+
+group native replication
+dbwrites -> dbreads : realtime\nreplication
+end
+@enduml
