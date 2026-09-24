@@ -38,3 +38,9 @@ populated by `backend/api` on every shortcode redirect — into Postgres:
    bucket keeps showing up, so a busy period can't build up back pressure.
 5. Once there's no live bucket left to rotate, wait 60 seconds and check
    again.
+
+### Clean-up worker
+
+`CleanupWorker` runs once a day (`dinkylink.workers.cleanup.cron`,
+default `0 0 2 * * *` — 2am) and deletes every record whose
+`last_touched_timestamp` is more than a year old.
