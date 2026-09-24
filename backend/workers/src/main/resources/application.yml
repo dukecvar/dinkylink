@@ -1,0 +1,22 @@
+server:
+  port: 8082
+
+spring:
+  application:
+    name: DinkyLinkWorkers
+  datasource:
+    url: jdbc:postgresql://localhost:5432/dinkylink
+    username: dinkylink
+    password: dinkylink
+  data:
+    redis:
+      host: localhost
+      port: 6379
+  flyway:
+    enabled: false
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health

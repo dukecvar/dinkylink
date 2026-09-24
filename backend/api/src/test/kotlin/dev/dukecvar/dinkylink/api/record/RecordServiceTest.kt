@@ -1,8 +1,10 @@
 package dev.dukecvar.dinkylink.api.record
 
+import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
+import org.springframework.data.redis.core.StringRedisTemplate
 import org.springframework.transaction.annotation.Transactional
 import java.util.UUID
 import kotlin.test.assertEquals
@@ -21,6 +23,14 @@ class RecordServiceTest {
 
 	@Autowired
 	private lateinit var urlHasher: UrlHasher
+
+	@Autowired
+	private lateinit var redisTemplate: StringRedisTemplate
+
+	@AfterEach
+	fun cleanUp() {
+		redisTemplate.delete(RecordCache.LAST_TOUCHED_LIVE_KEY)
+	}
 
 	private fun uniqueUrl() = "https://example.com/${UUID.randomUUID()}"
 
@@ -75,5 +85,26 @@ class RecordServiceTest {
 	@Test
 	fun `resolveUrl returns null for an unknown shortcode`() {
 		assertNull(recordService.resolveUrl("00000000"))
+	}
+
+	@Test
+	fun `resolveUrl records the shortcode in the last-touched live bucket`() {
+		val url = uniqueUrl()
+		val added = recordService.addRecord(url)
+
+		recordService.resolveUrl(added.shortcode)
+
+		val touched = redisTemplate.opsForHash<String, String>()
+			.get(RecordCache.LAST_TOUCHED_LIVE_KEY, added.shortcode)
+		assertNotNull(touched)
+	}
+
+	@Test
+	fun `resolveUrl does not touch the last-touched bucket for an unknown shortcode`() {
+		recordService.resolveUrl("00000000")
+
+		val touched = redisTemplate.opsForHash<String, String>()
+			.get(RecordCache.LAST_TOUCHED_LIVE_KEY, "00000000")
+		assertNull(touched)
 	}
 }
