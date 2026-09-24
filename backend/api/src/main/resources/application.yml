@@ -1,6 +1,9 @@
 server:
   port: 8081
 
+dinkylink:
+  base-url: http://localhost:8080
+
 spring:
   application:
     name: DinkyLinkApi
