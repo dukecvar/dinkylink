@@ -1,6 +1,7 @@
 package dev.dukecvar.dinkylink.workers.lasttouched
 
 import org.slf4j.LoggerFactory
+import org.springframework.beans.factory.annotation.Value
 import org.springframework.data.redis.core.ScanOptions
 import org.springframework.data.redis.core.StringRedisTemplate
 import org.springframework.scheduling.annotation.Scheduled
@@ -13,22 +14,22 @@ import java.time.OffsetDateTime
  * timestamp, populated by backend/api on every redirect) into Postgres.
  * Keeps rotating and draining back-to-back as long as new live buckets
  * keep showing up, so a busy period can't build up back pressure behind
- * the fixed 60s tick; only falls back to that 60s cadence once caught up.
+ * the fixed flush interval; only falls back to that cadence once caught up.
  * See "Last touched worker" in docs/design.md.
  */
 @Component
 class LastTouchedFlushWorker(
 	private val redisTemplate: StringRedisTemplate,
 	private val lastTouchedRepository: LastTouchedRepository,
+	@Value("\${dinkylink.workers.last-touched.batch-size:1000}") private val batchSize: Long,
 ) {
 
 	companion object {
 		private val logger = LoggerFactory.getLogger(LastTouchedFlushWorker::class.java)
 		const val LIVE_KEY = "last-touched:live"
-		private const val BATCH_SIZE = 1000L
 	}
 
-	@Scheduled(fixedDelay = 60_000)
+	@Scheduled(fixedDelayString = "\${dinkylink.workers.last-touched.flush-interval-ms:60000}")
 	fun flush() {
 		while (true) {
 			val flushingKey = rotateLiveBucket() ?: return
@@ -56,7 +57,7 @@ class LastTouchedFlushWorker(
 
 	private fun drain(flushingKey: String) {
 		val hashOps = redisTemplate.opsForHash<String, String>()
-		val scanOptions = ScanOptions.scanOptions().count(BATCH_SIZE).build()
+		val scanOptions = ScanOptions.scanOptions().count(batchSize).build()
 		var processed = 0
 
 		hashOps.scan(flushingKey, scanOptions).use { cursor ->
@@ -64,7 +65,7 @@ class LastTouchedFlushWorker(
 			while (cursor.hasNext()) {
 				val entry = cursor.next()
 				batch[entry.key] = entry.value
-				if (batch.size >= BATCH_SIZE) {
+				if (batch.size >= batchSize) {
 					processed += flushBatch(flushingKey, batch)
 				}
 			}

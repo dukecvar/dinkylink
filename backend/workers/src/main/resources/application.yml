@@ -17,7 +17,11 @@ spring:
 
 dinkylink:
   workers:
+    last-touched:
+      batch-size: 1000
+      flush-interval-ms: 60000
     cleanup:
+      retention: P1Y
       cron: "0 0 2 * * *"
 
 management:
