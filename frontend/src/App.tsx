@@ -1,121 +1,93 @@
-import { useState } from 'react'
-import heroImg from './assets/hero.png'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
-import './App.css'
+import { Check, Copy, Link2, Loader2 } from "lucide-react"
+import { useState } from "react"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { ShortenError, shortenUrl } from "@/lib/api"
 
 function App() {
-  const [count, setCount] = useState(0)
+  const [url, setUrl] = useState("")
+  const [shortUrl, setShortUrl] = useState<string | null>(null)
+  const [error, setError] = useState<string | null>(null)
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [copied, setCopied] = useState(false)
+
+  async function handleSubmit(event: React.FormEvent) {
+    event.preventDefault()
+    if (!url.trim() || isSubmitting) return
+
+    setIsSubmitting(true)
+    setError(null)
+    setShortUrl(null)
+    setCopied(false)
+
+    try {
+      const result = await shortenUrl(url.trim())
+      setShortUrl(result.shortURL)
+    } catch (err) {
+      setError(err instanceof ShortenError ? err.message : "Something went wrong. Please try again.")
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
+  async function handleCopy() {
+    if (!shortUrl) return
+    try {
+      await navigator.clipboard.writeText(shortUrl)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    } catch {
+      // Clipboard access can fail (permissions, insecure context); the
+      // short URL is still selectable/visible, so there's nothing to recover.
+    }
+  }
 
   return (
-    <>
-      <section id="center">
-        <div className="hero">
-          <img src={heroImg} className="base" width="170" height="179" alt="" />
-          <img src={reactLogo} className="framework" alt="React logo" />
-          <img src={viteLogo} className="vite" alt="Vite logo" />
+    <main className="flex min-h-svh flex-col items-center justify-center gap-8 px-4">
+      <div className="flex flex-col items-center gap-2 text-center">
+        <div className="flex items-center gap-2 text-foreground">
+          <Link2 className="size-6" />
+          <h1 className="text-2xl font-semibold">Dinky Link</h1>
         </div>
-        <div>
-          <h1>Get started</h1>
-          <p>
-            Edit <code>src/App.tsx</code> and save to test <code>HMR</code>
-          </p>
-        </div>
-        <button
-          type="button"
-          className="counter"
-          onClick={() => setCount((count) => count + 1)}
-        >
-          Count is {count}
-        </button>
-      </section>
+        <p className="text-muted-foreground">Shorten a long URL into something tweet-sized.</p>
+      </div>
 
-      <div className="ticks"></div>
-
-      <section id="next-steps">
-        <div id="docs">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#documentation-icon"></use>
-          </svg>
-          <h2>Documentation</h2>
-          <p>Your questions, answered</p>
-          <ul>
-            <li>
-              <a href="https://vite.dev/" target="_blank">
-                <img className="logo" src={viteLogo} alt="" />
-                Explore Vite
-              </a>
-            </li>
-            <li>
-              <a href="https://react.dev/" target="_blank">
-                <img className="button-icon" src={reactLogo} alt="" />
-                Learn more
-              </a>
-            </li>
-          </ul>
+      <form onSubmit={handleSubmit} className="flex w-full max-w-md flex-col gap-3">
+        <div className="flex gap-2">
+          <Input
+            type="url"
+            inputMode="url"
+            placeholder="https://example.com/a-very-long-url"
+            value={url}
+            onChange={(event) => setUrl(event.target.value)}
+            aria-label="Long URL"
+            aria-invalid={error != null}
+            required
+          />
+          <Button type="submit" disabled={isSubmitting}>
+            {isSubmitting ? <Loader2 className="animate-spin" /> : null}
+            Shorten
+          </Button>
         </div>
-        <div id="social">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#social-icon"></use>
-          </svg>
-          <h2>Connect with us</h2>
-          <p>Join the Vite community</p>
-          <ul>
-            <li>
-              <a href="https://github.com/vitejs/vite" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#github-icon"></use>
-                </svg>
-                GitHub
-              </a>
-            </li>
-            <li>
-              <a href="https://chat.vite.dev/" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#discord-icon"></use>
-                </svg>
-                Discord
-              </a>
-            </li>
-            <li>
-              <a href="https://x.com/vite_js" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#x-icon"></use>
-                </svg>
-                X.com
-              </a>
-            </li>
-            <li>
-              <a href="https://bsky.app/profile/vite.dev" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#bluesky-icon"></use>
-                </svg>
-                Bluesky
-              </a>
-            </li>
-          </ul>
-        </div>
-      </section>
+        {error ? <p className="text-sm text-destructive">{error}</p> : null}
+      </form>
 
-      <div className="ticks"></div>
-      <section id="spacer"></section>
-    </>
+      {shortUrl ? (
+        <div className="flex w-full max-w-md items-center gap-2 rounded-lg border border-border bg-card p-3">
+          <a
+            href={shortUrl}
+            target="_blank"
+            rel="noreferrer"
+            className="flex-1 truncate text-sm font-medium text-primary underline-offset-4 hover:underline"
+          >
+            {shortUrl}
+          </a>
+          <Button type="button" variant="outline" size="icon" onClick={handleCopy} aria-label="Copy short URL">
+            {copied ? <Check className="text-primary" /> : <Copy />}
+          </Button>
+        </div>
+      ) : null}
+    </main>
   )
 }
 
