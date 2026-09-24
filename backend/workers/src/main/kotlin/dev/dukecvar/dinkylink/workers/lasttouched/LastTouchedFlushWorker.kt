@@ -11,6 +11,9 @@ import java.time.OffsetDateTime
 /**
  * Drains the `last-touched:live` Redis hash (shortcode -> last-accessed
  * timestamp, populated by backend/api on every redirect) into Postgres.
+ * Keeps rotating and draining back-to-back as long as new live buckets
+ * keep showing up, so a busy period can't build up back pressure behind
+ * the fixed 60s tick; only falls back to that 60s cadence once caught up.
  * See "Last touched worker" in docs/design.md.
  */
 @Component
@@ -27,11 +30,13 @@ class LastTouchedFlushWorker(
 
 	@Scheduled(fixedDelay = 60_000)
 	fun flush() {
-		val flushingKey = rotateLiveBucket() ?: return
-		try {
-			drain(flushingKey)
-		} finally {
-			redisTemplate.delete(flushingKey)
+		while (true) {
+			val flushingKey = rotateLiveBucket() ?: return
+			try {
+				drain(flushingKey)
+			} finally {
+				redisTemplate.delete(flushingKey)
+			}
 		}
 	}
 

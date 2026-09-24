@@ -101,4 +101,36 @@ class LastTouchedFlushWorkerTest {
 			assertNull(hashOps.get(LastTouchedFlushWorker.LIVE_KEY, shortcode))
 		}
 	}
+
+	@Test
+	fun `keeps draining without waiting when a new live bucket appears mid-flush`() {
+		val shortcodeA = UUID.randomUUID().toString().take(8)
+		val shortcodeB = UUID.randomUUID().toString().take(8)
+		insertRecord(shortcodeA)
+		insertRecord(shortcodeB)
+		val touchedAt = OffsetDateTime.now().truncatedTo(ChronoUnit.MICROS)
+		val hashOps = redisTemplate.opsForHash<String, String>()
+		hashOps.put(LastTouchedFlushWorker.LIVE_KEY, shortcodeA, touchedAt.toString())
+
+		// As soon as the first rotation is visible (a flushing:* key exists),
+		// repopulate the live bucket before flush() finishes its loop. If
+		// flush() only drained once per call, shortcodeB would still be
+		// sitting in the live bucket, untouched, after flush() returns.
+		val producer = Thread {
+			val deadline = System.currentTimeMillis() + 5000
+			while (System.currentTimeMillis() < deadline && redisTemplate.keys("last-touched:flushing:*").isNullOrEmpty()) {
+				Thread.sleep(1)
+			}
+			hashOps.put(LastTouchedFlushWorker.LIVE_KEY, shortcodeB, touchedAt.toString())
+		}
+		producer.start()
+
+		flushWorker.flush()
+		producer.join(5000)
+
+		assertEquals(touchedAt.toInstant(), lastTouchedOf(shortcodeA).toInstant())
+		assertEquals(touchedAt.toInstant(), lastTouchedOf(shortcodeB).toInstant())
+		assertNull(hashOps.get(LastTouchedFlushWorker.LIVE_KEY, shortcodeB))
+		assertTrue(redisTemplate.keys("last-touched:flushing:*").isNullOrEmpty())
+	}
 }

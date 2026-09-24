@@ -27,14 +27,14 @@ Runs on `http://localhost:8082` (not routed through nginx). Health check:
 
 ### Last-touched flush worker
 
-Every 60 seconds (`LastTouchedFlushWorker`), drains the `last-touched:live`
-Redis hash — populated by `backend/api` on every shortcode redirect — into
-Postgres:
+`LastTouchedFlushWorker` drains the `last-touched:live` Redis hash —
+populated by `backend/api` on every shortcode redirect — into Postgres:
 
 1. If `last-touched:live` exists, rename it to `last-touched:flushing:<ts>`.
 2. Scan the flushing bucket in batches of 1000, updating each record's
    `last_touched_timestamp` and removing the entry from the bucket.
 3. Delete the (now-empty) flushing key.
-
-If the live bucket doesn't exist (nothing to flush), the job is a no-op
-until the next cycle.
+4. Repeat from step 1 immediately — no delay — as long as a new live
+   bucket keeps showing up, so a busy period can't build up back pressure.
+5. Once there's no live bucket left to rotate, wait 60 seconds and check
+   again.
