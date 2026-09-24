@@ -3,6 +3,7 @@ package dev.dukecvar.dinkylink.api.record
 import org.springframework.data.redis.core.StringRedisTemplate
 import org.springframework.stereotype.Component
 import java.time.Duration
+import java.time.OffsetDateTime
 import java.util.HexFormat
 
 @Component
@@ -12,6 +13,7 @@ class RecordCache(
 
 	companion object {
 		private val TTL: Duration = Duration.ofDays(365)
+		const val LAST_TOUCHED_LIVE_KEY = "last-touched:live"
 	}
 
 	fun getShortcode(urlhash: ByteArray): String? = get(shortcodeKey(urlhash))
@@ -21,6 +23,10 @@ class RecordCache(
 	fun getUrl(shortcode: String): String? = get(urlKey(shortcode))
 
 	fun putUrl(shortcode: String, url: String) = put(urlKey(shortcode), url)
+
+	fun touch(shortcode: String) {
+		redisTemplate.opsForHash<String, String>().put(LAST_TOUCHED_LIVE_KEY, shortcode, OffsetDateTime.now().toString())
+	}
 
 	private fun get(key: String): String? {
 		val value = redisTemplate.opsForValue().get(key)

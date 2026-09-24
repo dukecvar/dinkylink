@@ -35,10 +35,11 @@ docker compose down -v
 docker compose up -d
 ```
 
-Run the backend and frontend:
+Run the backend, workers, and frontend:
 ```bash
-cd backend/api && ./gradlew bootRun    # localhost:8081
-cd frontend && npm run dev             # localhost:5173
+cd backend/api && ./gradlew bootRun      # localhost:8081
+cd backend/workers && ./gradlew bootRun  # localhost:8082, internal-only
+cd frontend && npm run dev               # localhost:5173
 ```
 
 With all of the above running, the app is available at
@@ -68,6 +69,14 @@ Run the service locally:
 ```
 Serves on `http://localhost:8081` directly (nginx's public gateway is on
 `8080` — see Local Development above).
+
+## Backend (`backend/workers`)
+
+Internal background jobs — never routed through the nginx gateway. Same
+Postgres/Redis prerequisites and commands as `backend/api` (`./gradlew
+build`/`test`/`bootRun`). Serves on `http://localhost:8082`. See
+`backend/workers/README.md` and "Worker(s)" in `docs/design.md` for job
+details.
 
 ## Frontend (`frontend/`)
 

@@ -23,8 +23,13 @@ class RecordService(
 	fun getRecord(shortcode: String): Record? =
 		recordRepository.findById(shortcode).orElse(null)
 
-	fun resolveUrl(shortcode: String): String? =
-		recordCache.getUrl(shortcode) ?: recordRepository.findById(shortcode).orElse(null)?.url?.also {
+	fun resolveUrl(shortcode: String): String? {
+		val url = recordCache.getUrl(shortcode) ?: recordRepository.findById(shortcode).orElse(null)?.url?.also {
 			recordCache.putUrl(shortcode, it)
 		}
+		if (url != null) {
+			recordCache.touch(shortcode)
+		}
+		return url
+	}
 }

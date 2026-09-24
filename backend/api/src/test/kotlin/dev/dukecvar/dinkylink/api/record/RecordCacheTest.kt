@@ -9,6 +9,7 @@ import java.time.Duration
 import java.util.UUID
 import java.util.concurrent.TimeUnit
 import kotlin.test.assertEquals
+import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
@@ -76,5 +77,16 @@ class RecordCacheTest {
 
 		val remaining = redisTemplate.getExpire(key, TimeUnit.DAYS)
 		assertTrue(remaining > 300, "expected TTL to be refreshed close to 365 days, was $remaining days")
+	}
+
+	@Test
+	fun `touch records the shortcode in the last-touched live bucket`() {
+		val shortcode = UUID.randomUUID().toString().take(8)
+		usedKeys.add(RecordCache.LAST_TOUCHED_LIVE_KEY)
+
+		recordCache.touch(shortcode)
+
+		val recorded = redisTemplate.opsForHash<String, String>().get(RecordCache.LAST_TOUCHED_LIVE_KEY, shortcode)
+		assertNotNull(recorded)
 	}
 }
