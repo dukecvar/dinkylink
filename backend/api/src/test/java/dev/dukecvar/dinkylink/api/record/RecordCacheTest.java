@@ -88,4 +88,16 @@ class RecordCacheTest {
         Long remaining = redisTemplate.getExpire(key, TimeUnit.DAYS);
         assertThat(remaining).as("expected TTL to be refreshed close to 365 days, was %d days", remaining).isGreaterThan(300);
     }
+
+    @Test
+    @DisplayName("touch records the shortcode in the last-touched live bucket")
+    void touchRecordsTheShortcodeInTheLastTouchedLiveBucket() {
+        String shortcode = UUID.randomUUID().toString().substring(0, 8);
+        usedKeys.add(RecordCache.LAST_TOUCHED_LIVE_KEY);
+
+        recordCache.touch(shortcode);
+
+        String recorded = redisTemplate.<String, String>opsForHash().get(RecordCache.LAST_TOUCHED_LIVE_KEY, shortcode);
+        assertThat(recorded).isNotNull();
+    }
 }

@@ -1,0 +1,31 @@
+server:
+  port: 8082
+
+spring:
+  application:
+    name: DinkyLinkWorkers
+  datasource:
+    url: jdbc:postgresql://localhost:5432/dinkylink
+    username: dinkylink
+    password: dinkylink
+  data:
+    redis:
+      host: localhost
+      port: 6379
+  flyway:
+    enabled: false
+
+dinkylink:
+  workers:
+    last-touched:
+      batch-size: 1000
+      flush-interval-ms: 60000
+    cleanup:
+      retention: P1Y
+      cron: "0 0 2 * * *"
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health

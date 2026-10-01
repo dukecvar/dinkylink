@@ -18,6 +18,14 @@ cd backend/api
 ./gradlew bootRun
 ```
 
+Run the workers (background jobs, internal-only — not routed through
+nginx):
+
+```bash
+cd backend/workers
+./gradlew bootRun
+```
+
 Run the frontend:
 
 ```bash
@@ -36,5 +44,6 @@ running.
 
 - `database/` — Flyway migrations ([README](database/README.md))
 - `backend/api` — the public API ([README](backend/api/README.md))
+- `backend/workers` — internal background jobs ([README](backend/workers/README.md))
 - `frontend/` — the web UI ([README](frontend/README.md))
 - `local/` — Docker Compose infra ([README](local/README.md))

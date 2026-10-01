@@ -31,6 +31,14 @@ public class RecordService {
     }
 
     public String resolveUrl(String shortcode) {
+        String url = resolve(shortcode);
+        if (url != null) {
+            recordCache.touch(shortcode);
+        }
+        return url;
+    }
+
+    private String resolve(String shortcode) {
         String cachedUrl = recordCache.getUrl(shortcode);
         if (cachedUrl != null) {
             return cachedUrl;

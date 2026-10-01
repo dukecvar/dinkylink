@@ -3,16 +3,22 @@ package dev.dukecvar.dinkylink.api.record;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Component;
 import java.time.Duration;
+import java.time.OffsetDateTime;
 import java.util.HexFormat;
 
 @Component
 public class RecordCache {
     private static final Duration TTL = Duration.ofDays(365);
+    public static final String LAST_TOUCHED_LIVE_KEY = "last-touched:live";
 
     private final StringRedisTemplate redisTemplate;
 
     public RecordCache(StringRedisTemplate redisTemplate) {
         this.redisTemplate = redisTemplate;
+    }
+
+    public void touch(String shortcode) {
+        redisTemplate.<String, String>opsForHash().put(LAST_TOUCHED_LIVE_KEY, shortcode, OffsetDateTime.now().toString());
     }
 
     public String getShortcode(byte[] urlhash) {
