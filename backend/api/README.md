@@ -1,6 +1,6 @@
 # backend/api
 
-The Dinky Link public API (Kotlin, Spring Boot).
+The Dinky Link public API (Java, Spring Boot).
 
 ## Prerequisites
 

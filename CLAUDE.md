@@ -8,7 +8,7 @@ A URL shortener. A URL that's too long to copy to a tweet this tool creates a sh
 
 ## Tech Stack
 
-- **Backend**: Kotlin, Spring Boot 4, Gradle (kts), JVM 25. API Project in `backend/api`. Workers Project in `backend/workers`
+- **Backend**: Java, Spring Boot 4, Gradle, JVM 25. API Project in `backend/api`. Workers Project in `backend/workers`
 - **Database**: PostgreSQL with Flyway migrations
 - **Cache**: Redis
 - **Frontend**: React 19, Vite, TypeScript, TailwindCSS, shadcn/ui
@@ -87,7 +87,7 @@ When a change alters how a part of the project works (setup steps, commands, arc
 
 ## Code Style
 - backend
-  - Prefer `val` over `var`; use data classes for DTOs.
+  - Prefer final fields; use Java records for DTOs.
   - Constructor injection only — no field injection.
   - Controllers are thin; business logic belongs in `@Service` classes. Use appropriate stereotypes such as `@RestController`
   - Unit tests are isolated and readable.
